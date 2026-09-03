@@ -12,8 +12,25 @@ module.exports = defineConfig({
   fullyParallel: false,
   use: {
     baseURL: cfg.baseURL,
-    storageState: cfg.storageState,
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    // Runs once: register a passkey and export it. Uses the authenticated session.
+    {
+      name: 'setup',
+      testMatch: /.*\.setup\.js/,
+      use: { ...devices['Desktop Chrome'], storageState: cfg.storageState },
+    },
+    // Feature tests. Start logged out so the passkey (via the signedInPage fixture)
+    // is the only way in. Depends on setup, so credential.json exists first.
+    {
+      name: 'chromium',
+      testMatch: /features\/.*\.spec\.js/,
+      dependencies: ['setup'],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
+      },
+    },
+  ],
 });
